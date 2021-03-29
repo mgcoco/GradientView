@@ -6,5 +6,6 @@
             <enum name="vertical" value="1" />
         </attr>
         <attr name="gradientColor" format="reference"/>
+        <attr name="controlPoints" format="reference"/>
     </declare-styleable>
 </resources>

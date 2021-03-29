@@ -63,10 +63,29 @@ public class GradientView extends View {
             if (id != 0) {
                 gradientColor = getResources().getIntArray(id);
             }
+
+            id = ta.getResourceId(R.styleable.GradientView_controlPoints, 0);
+            if(id != 0) {
+                ArrayList<ControlPoint> tmpControlPoints = new ArrayList<>();
+                String[] controlPointsArray = getResources().getStringArray(id);
+                for(String controlPoint: controlPointsArray) {
+                    try{
+                        System.out.println("parse:" + controlPoint);
+                        String[] currentPoint = controlPoint.split(",");
+                        tmpControlPoints.add(new ControlPoint(Float.valueOf(currentPoint[0]), Float.valueOf(currentPoint[1])));
+                    }
+                    catch (Exception e){
+                        e.printStackTrace();
+                    }
+                }
+                if(tmpControlPoints.size() > 1){
+                    setControlPoints(tmpControlPoints);
+                }
+            }
         }
     }
 
-    public void setControlPoints(ArrayList<ControlPoint> points){
+    public void setControlPoints(@Size(min = 2) ArrayList<ControlPoint> points){
         controlPoints = points;
         if(orientation == VERTICAL){
             Collections.sort(controlPoints, (Comparator<ControlPoint>) (o1, o2) -> (int)(o1.getX() - o2.getX()));
