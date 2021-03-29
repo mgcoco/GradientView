@@ -96,7 +96,7 @@ public class GradientView extends View {
         redraw();
     }
 
-    public void getGradientColor(@Size(min = 3) int[] colors){
+    public void setGradientColor(@Size(min = 3) int[] colors){
         this.gradientColor = colors;
         redraw();
     }
