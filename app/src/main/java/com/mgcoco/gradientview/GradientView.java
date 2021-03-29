@@ -77,7 +77,7 @@ public class GradientView extends View {
         redraw();
     }
 
-    public void getGradientColor(@Size(min=3) int[] colors){
+    public void getGradientColor(@Size(min = 3) int[] colors){
         this.gradientColor = colors;
         redraw();
     }
@@ -113,7 +113,7 @@ public class GradientView extends View {
             Point pStart = tmpCurvPoints.get(i - 1);
             Point pEnd = tmpCurvPoints.get(i);
             curvPoints.add(new Point(pStart.x, pStart.y));
-            float m = (float) (pEnd.y - pStart.y) / (float) (pEnd.x - pStart.x);
+            float m = (float) (pEnd.y - pStart.y) / (float)(pEnd.x - pStart.x);
 
             if(orientation == VERTICAL){
                 int oldX = pStart.x;
@@ -140,8 +140,6 @@ public class GradientView extends View {
                 }
             }
         }
-
-        curvPoints.add(new Point(tmpCurvPoints.get(tmpCurvPoints.size() - 1).x, tmpCurvPoints.get(tmpCurvPoints.size() - 1).y));
 
         if(orientation == VERTICAL){
             int startX = curvPoints.get(0).x;
@@ -206,7 +204,7 @@ public class GradientView extends View {
             for(float t = (float) 0.24; t <= 0.76; t = t + (float) (0.02)) {
                 float deltaX = p.x * (1 - t) * (1 - t) * (1 - t) + 3 * p1.x * t * (1 - t) * (1 - t) + 3 * p1.x * t * t * (1 - t) + p2.x * t * t * t;
                 float deltaY = p.y * (1 - t) * (1 - t) * (1 - t) + 3 * p1.y * t * (1 - t) * (1 - t) + 3 * p1.y * t * t * (1 - t) + p2.y * t * t * t;
-                if(oldY != (int)deltaY) {
+                if(deltaY > oldY && deltaY <= viewHeight) {
                     tmpCurvPoints.add(new Point((int) deltaX, (int) deltaY));
                     oldY = (int)deltaY;
                 }
