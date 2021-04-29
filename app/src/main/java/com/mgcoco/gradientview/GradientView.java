@@ -127,15 +127,12 @@ public class GradientView extends View {
         if(orientation == VERTICAL){
             fullPoints = new int[viewWidth];
             linearGradients = new LinearGradient[viewWidth];
-            Arrays.fill(linearGradients, new LinearGradient(0, 0, 0, viewHeight, gradientColor, colorPosition, Shader.TileMode.CLAMP));
         }
         else{
             fullPoints = new int[viewHeight];
             linearGradients = new LinearGradient[viewHeight];
-            Arrays.fill(linearGradients, new LinearGradient(0, 0, viewWidth, 0, gradientColor, colorPosition, Shader.TileMode.CLAMP));
         }
         Arrays.fill(fullPoints, -1);
-
 
 
         for (int i = 1; i < controlPoints.size(); i++) {
@@ -159,6 +156,7 @@ public class GradientView extends View {
                 if(startX < fullPoints.length) {
                     fullPoints[startX] = startY;
                     colorPosition[1] = ((float) (fullPoints[startX]) / viewHeight);
+                    linearGradients[startX] = new LinearGradient(0, 0, 0, viewHeight, gradientColor, colorPosition, Shader.TileMode.CLAMP);
 
                     int oldX = startX;
                     if (endX - startX > 1) {
@@ -167,6 +165,7 @@ public class GradientView extends View {
                             if (gi > oldX) {
                                 fullPoints[gi] = (int) y;
                                 colorPosition[1] = ((float) (fullPoints[gi]) / viewHeight);
+                                linearGradients[gi] = new LinearGradient(0, 0, 0, viewHeight, gradientColor, colorPosition, Shader.TileMode.CLAMP);
                                 oldX = gi;
                             }
                         }
@@ -178,6 +177,7 @@ public class GradientView extends View {
                     int oldY = startY;
                     fullPoints[startY] = startX;
                     colorPosition[1] = ((float) (fullPoints[startY]) / viewWidth);
+                    linearGradients[startY] = new LinearGradient(0, 0, viewWidth, 0, gradientColor, colorPosition, Shader.TileMode.CLAMP);
 
                     if (endY - startY > 1) {
                         for (int gi = startY + 1; gi < endY; gi++) {
@@ -185,6 +185,7 @@ public class GradientView extends View {
                             if (gi > oldY) {
                                 fullPoints[gi] = (int) x;
                                 colorPosition[1] = ((float) (fullPoints[gi]) / viewWidth);
+                                linearGradients[gi] = new LinearGradient(0, 0, viewWidth, 0, gradientColor, colorPosition, Shader.TileMode.CLAMP);
                                 oldY = gi;
                             }
                         }
@@ -196,38 +197,38 @@ public class GradientView extends View {
         int endX = tmpX.get(tmpX.size() - 1);
         int endY = tmpY.get(tmpY.size() - 1);
         if(orientation == VERTICAL){
-            int startX = fullPoints[0];
-            if(startX == -1) {
-                int y = tmpY.get(0);
-                for(int i = startX - 1; i >= 0; i--) {
-                    fullPoints[i] = y;
-                    colorPosition[1] = ((float) (fullPoints[i]) / viewHeight);
-                }
+            int y = tmpY.get(0);
+            for(int i = 0; i <= fullPoints.length; i++) {
+                if(fullPoints[i] != -1)
+                    break;
+                fullPoints[i] = y;
+                colorPosition[1] = ((float) (fullPoints[i]) / viewHeight);
+                linearGradients[i] = new LinearGradient(0, 0, 0, viewHeight, gradientColor, colorPosition, Shader.TileMode.CLAMP);
             }
 
-            int lastX = fullPoints[fullPoints.length - 1];
-            if(lastX == -1) {
+            if(fullPoints[fullPoints.length - 1] == -1) {
                 for(int i = endX; i < viewWidth; i++) {
                     fullPoints[i] = endY;
                     colorPosition[1] = ((float) (fullPoints[i]) / viewHeight);
+                    linearGradients[i] = new LinearGradient(0, 0, 0, viewHeight, gradientColor, colorPosition, Shader.TileMode.CLAMP);
                 }
             }
         }
         else{
-            int startY = fullPoints[0];
-            if(startY == -1) {
-                int x = tmpX.get(0);
-                for(int i = startY - 1; i >= 0; i--) {
-                    fullPoints[i] = x;
-                    colorPosition[1] = ((float) (fullPoints[i]) / viewWidth);
-                }
+            int x = tmpX.get(0);
+            for(int i = 0; i <= fullPoints.length; i++) {
+                if(fullPoints[i] != -1)
+                    break;
+                fullPoints[i] = x;
+                colorPosition[1] = ((float) (fullPoints[i]) / viewWidth);
+                linearGradients[i] = new LinearGradient(0, 0, viewWidth, 0, gradientColor, colorPosition, Shader.TileMode.CLAMP);
             }
 
-            int lastY = fullPoints[fullPoints.length - 1];
-            if(lastY == -1) {
+            if(fullPoints[fullPoints.length - 1] == -1) {
                 for(int i = endY; i < viewHeight; i++) {
                     fullPoints[i] = endX;
                     colorPosition[1] = ((float) (fullPoints[i]) / viewWidth);
+                    linearGradients[i] = new LinearGradient(0, 0, viewWidth, 0, gradientColor, colorPosition, Shader.TileMode.CLAMP);
                 }
             }
         }
@@ -248,7 +249,7 @@ public class GradientView extends View {
             if(tmpX.size() > 0){
                 oldX = tmpX.get(tmpX.size() - 1);
             }
-            for(float t = (float) 0.24; t <= 0.76; t = t + (float) (0.02)) {
+            for(float t = (float) 0.24; t <= 0.76; t = t + (float) (0.1)) {
                 int deltaX = (int) (px * (1 - t) * (1 - t) * (1 - t) + 3 * p1x * t * (1 - t) * (1 - t) + 3 * p1x * t * t * (1 - t) + p2x * t * t * t);
                 int deltaY = (int) (py * (1 - t) * (1 - t) * (1 - t) + 3 * p1y * t * (1 - t) * (1 - t) + 3 * p1y * t * t * (1 - t) + p2y * t * t * t);
                 if(oldX != deltaX && deltaX < viewWidth) {
@@ -263,7 +264,7 @@ public class GradientView extends View {
             if(tmpY.size() > 0){
                 oldY = tmpY.get(tmpY.size() - 1);
             }
-            for(float t = (float) 0.24; t <= 0.76; t = t + (float) (0.02)) {
+            for(float t = (float) 0.24; t <= 0.76; t = t + (float) (0.1)) {
                 int deltaX = (int) (px * (1 - t) * (1 - t) * (1 - t) + 3 * p1x * t * (1 - t) * (1 - t) + 3 * p1x * t * t * (1 - t) + p2x * t * t * t);
                 int deltaY = (int) (py * (1 - t) * (1 - t) * (1 - t) + 3 * p1y * t * (1 - t) * (1 - t) + 3 * p1y * t * t * (1 - t) + p2y * t * t * t);
                 if(deltaY > oldY && deltaY < viewHeight) {
