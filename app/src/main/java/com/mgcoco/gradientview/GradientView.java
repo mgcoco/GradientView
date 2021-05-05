@@ -2,11 +2,12 @@ package com.mgcoco.gradientview;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Shader;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -15,21 +16,18 @@ import androidx.annotation.Nullable;
 import androidx.annotation.Size;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 
 public class GradientView extends View {
 
+    static {
+        System.loadLibrary("native-lib");
+    }
+
+    public native void setup(Object[] controlPoints, int orientation, int width, int viewHeight, int[] colors, int[] bitmap);
+
     private ArrayList<ControlPoint> controlPoints = new ArrayList<>();
-
-    private ArrayList<Integer> tmpX = new ArrayList<>();
-
-    private ArrayList<Integer> tmpY = new ArrayList<>();
-
-    private int[] fullPoints = new int[]{};
-
-    private LinearGradient[] linearGradients = new LinearGradient[]{};
 
     private int viewWidth;
 
@@ -43,9 +41,9 @@ public class GradientView extends View {
 
     private int[] gradientColor = new int[]{Color.GRAY, Color.WHITE, Color.BLACK};
 
-    private float[] colorPosition = {0f, 0.5f, 1.0f};
-
     private Paint paint = new Paint();
+
+    private Bitmap gradientBmp;
 
     public GradientView(Context context) {
         super(context);
@@ -100,17 +98,17 @@ public class GradientView extends View {
         else{
             Collections.sort(controlPoints, (Comparator<ControlPoint>) (o1, o2) -> (int)(o1.getY() - o2.getY()));
         }
-        redraw();
+        syncDraw();
     }
 
     public void setGradientColor(@Size(min = 3) int[] colors){
         this.gradientColor = colors;
-        redraw();
+        syncDraw();
     }
 
     public void setOrientation(@IntRange(from = 0, to = 1)int orientation){
         this.orientation = orientation;
-        redraw();
+        syncDraw();
     }
 
     private void checkAndCompensateEndpoint(){
@@ -123,157 +121,12 @@ public class GradientView extends View {
         }
     }
 
-    private void resetCurvPoints(){
-        if(orientation == VERTICAL){
-            fullPoints = new int[viewWidth];
-            linearGradients = new LinearGradient[viewWidth];
-        }
-        else{
-            fullPoints = new int[viewHeight];
-            linearGradients = new LinearGradient[viewHeight];
-        }
-        Arrays.fill(fullPoints, -1);
-
-
-        for (int i = 1; i < controlPoints.size(); i++) {
-            if(i == 1) {
-                setupCurvPoint(controlPoints.get(i), controlPoints.get(i - 1), controlPoints.get(i - 1));
-            }
-            else {
-                setupCurvPoint(controlPoints.get(i), controlPoints.get(i - 1), controlPoints.get(i - 2));
-            }
-        }
-
-        for (int i = 1; i < tmpX.size(); i++) {
-            int startX = tmpX.get(i - 1);
-            int startY = tmpY.get(i - 1);
-
-            int endX = tmpX.get(i);
-            int endY = tmpY.get(i);
-            float m = (float) (endY - startY) / (float)(endX - startX);
-
-            if(orientation == VERTICAL){
-                if(startX < fullPoints.length) {
-                    fullPoints[startX] = startY;
-                    colorPosition[1] = ((float) (fullPoints[startX]) / viewHeight);
-                    linearGradients[startX] = new LinearGradient(0, 0, 0, viewHeight, gradientColor, colorPosition, Shader.TileMode.CLAMP);
-
-                    int oldX = startX;
-                    if (endX - startX > 1) {
-                        for (int gi = startX + 1; gi < endX; gi++) {
-                            float y = m * (gi - startX) + startY;
-                            if (gi > oldX) {
-                                fullPoints[gi] = (int) y;
-                                colorPosition[1] = ((float) (fullPoints[gi]) / viewHeight);
-                                linearGradients[gi] = new LinearGradient(0, 0, 0, viewHeight, gradientColor, colorPosition, Shader.TileMode.CLAMP);
-                                oldX = gi;
-                            }
-                        }
-                    }
-                }
-            }
-            else{
-                if(startY < fullPoints.length) {
-                    int oldY = startY;
-                    fullPoints[startY] = startX;
-                    colorPosition[1] = ((float) (fullPoints[startY]) / viewWidth);
-                    linearGradients[startY] = new LinearGradient(0, 0, viewWidth, 0, gradientColor, colorPosition, Shader.TileMode.CLAMP);
-
-                    if (endY - startY > 1) {
-                        for (int gi = startY + 1; gi < endY; gi++) {
-                            float x = ((gi - endY) / m) + endX;
-                            if (gi > oldY) {
-                                fullPoints[gi] = (int) x;
-                                colorPosition[1] = ((float) (fullPoints[gi]) / viewWidth);
-                                linearGradients[gi] = new LinearGradient(0, 0, viewWidth, 0, gradientColor, colorPosition, Shader.TileMode.CLAMP);
-                                oldY = gi;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        int endX = tmpX.get(tmpX.size() - 1);
-        int endY = tmpY.get(tmpY.size() - 1);
-        if(orientation == VERTICAL){
-            int y = tmpY.get(0);
-            for(int i = 0; i <= fullPoints.length; i++) {
-                if(fullPoints[i] != -1)
-                    break;
-                fullPoints[i] = y;
-                colorPosition[1] = ((float) (fullPoints[i]) / viewHeight);
-                linearGradients[i] = new LinearGradient(0, 0, 0, viewHeight, gradientColor, colorPosition, Shader.TileMode.CLAMP);
-            }
-
-            if(fullPoints[fullPoints.length - 1] == -1) {
-                for(int i = endX; i < viewWidth; i++) {
-                    fullPoints[i] = endY;
-                    colorPosition[1] = ((float) (fullPoints[i]) / viewHeight);
-                    linearGradients[i] = new LinearGradient(0, 0, 0, viewHeight, gradientColor, colorPosition, Shader.TileMode.CLAMP);
-                }
-            }
-        }
-        else{
-            int x = tmpX.get(0);
-            for(int i = 0; i <= fullPoints.length; i++) {
-                if(fullPoints[i] != -1)
-                    break;
-                fullPoints[i] = x;
-                colorPosition[1] = ((float) (fullPoints[i]) / viewWidth);
-                linearGradients[i] = new LinearGradient(0, 0, viewWidth, 0, gradientColor, colorPosition, Shader.TileMode.CLAMP);
-            }
-
-            if(fullPoints[fullPoints.length - 1] == -1) {
-                for(int i = endY; i < viewHeight; i++) {
-                    fullPoints[i] = endX;
-                    colorPosition[1] = ((float) (fullPoints[i]) / viewWidth);
-                    linearGradients[i] = new LinearGradient(0, 0, viewWidth, 0, gradientColor, colorPosition, Shader.TileMode.CLAMP);
-                }
-            }
-        }
-    }
-
-    private void setupCurvPoint(ControlPoint cp2, ControlPoint cp1, ControlPoint cp){
-        int p2x = (int)(cp2.getX() * viewWidth);
-        int p2y = (int)(cp2.getY() * viewHeight);
-
-        int p1x = (int)(cp1.getX() * viewWidth);
-        int p1y = (int)(cp1.getY() * viewHeight);
-
-        int px = (int)(cp.getX() * viewWidth);
-        int py = (int)(cp.getY() * viewHeight);
-
-        if(orientation == VERTICAL){
-            int oldX = -1;
-            if(tmpX.size() > 0){
-                oldX = tmpX.get(tmpX.size() - 1);
-            }
-            for(float t = (float) 0.24; t <= 0.76; t = t + (float) (0.1)) {
-                int deltaX = (int) (px * (1 - t) * (1 - t) * (1 - t) + 3 * p1x * t * (1 - t) * (1 - t) + 3 * p1x * t * t * (1 - t) + p2x * t * t * t);
-                int deltaY = (int) (py * (1 - t) * (1 - t) * (1 - t) + 3 * p1y * t * (1 - t) * (1 - t) + 3 * p1y * t * t * (1 - t) + p2y * t * t * t);
-                if(oldX != deltaX && deltaX < viewWidth) {
-                    tmpX.add(deltaX);
-                    tmpY.add(deltaY);
-                    oldX = (int)deltaX;
-                }
-            }
-        }
-        else{
-            int oldY = -1;
-            if(tmpY.size() > 0){
-                oldY = tmpY.get(tmpY.size() - 1);
-            }
-            for(float t = (float) 0.24; t <= 0.76; t = t + (float) (0.1)) {
-                int deltaX = (int) (px * (1 - t) * (1 - t) * (1 - t) + 3 * p1x * t * (1 - t) * (1 - t) + 3 * p1x * t * t * (1 - t) + p2x * t * t * t);
-                int deltaY = (int) (py * (1 - t) * (1 - t) * (1 - t) + 3 * p1y * t * (1 - t) * (1 - t) + 3 * p1y * t * t * (1 - t) + p2y * t * t * t);
-                if(deltaY > oldY && deltaY < viewHeight) {
-                    tmpX.add(deltaX);
-                    tmpY.add(deltaY);
-                    oldY = (int)deltaY;
-                }
-            }
-        }
+    private void resetCurvPoints() {
+        if (!isShown())
+            return;
+        int[] result = new int[viewWidth * viewHeight];
+        setup(controlPoints.toArray(), orientation, viewWidth, viewHeight, gradientColor, result);
+        gradientBmp = Bitmap.createBitmap(result, viewWidth, viewHeight, Bitmap.Config.ARGB_8888);
     }
 
     @Override
@@ -281,30 +134,34 @@ public class GradientView extends View {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         viewWidth = getMeasuredWidth();
         viewHeight = getMeasuredHeight();
-        redraw();
+        syncDraw();
     }
 
-    private void redraw(){
+    private Handler handler = new Handler(Looper.myLooper());
+
+    private Runnable runnable = () -> {
+        redraw();
+    };
+
+    private void syncDraw(){
+        handler.removeCallbacks(runnable);
+        handler.post(runnable);
+    }
+
+    private synchronized void redraw(){
         if(controlPoints.size() > 0 && viewWidth > 0 && viewHeight > 0 && isShown()) {
             checkAndCompensateEndpoint();
             resetCurvPoints();
             invalidate();
         }
     }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if(orientation == VERTICAL){
-            for(int p = 0; p < fullPoints.length; p++){
-                paint.setShader(linearGradients[p]);
-                canvas.drawLine(p, 0, p, viewHeight, paint);
-            }
-        }
-        else{
-            for(int p = 0; p < fullPoints.length; p++){
-                paint.setShader(linearGradients[p]);
-                canvas.drawLine(0, p, viewWidth, p, paint);
-            }
-        }
+        if(gradientBmp != null && !gradientBmp.isRecycled())
+            canvas.drawBitmap(gradientBmp, 0, 0, paint);
     }
+
+
 }
