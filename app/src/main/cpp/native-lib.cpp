@@ -1,11 +1,9 @@
 #include <jni.h>
 #include <string>
 #include <stdio.h>
-#include <Android/Log.h>
 #include <list>
 
 #define TAG    "GradientHandler"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__)
 
 using namespace std;
 
